@@ -1,0 +1,45 @@
+# Copyright 2022 - 2025 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: protobuf
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+env:
+  GITHUB_REPO: "${{ github.repo }}"
+jobs:
+  buf:
+    name: protobuf / ${{ matrix.value.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        value:
+          - name: lint
+            cmd: buf lint --error-format=github-actions
+          - name: format
+            cmd: buf format --error-format=github-actions --exit-code --diff
+          - name: format
+            cmd: ./scripts/proto-check-breaking-changes.sh
+    steps:
+      - name: install buf
+        run: |
+          # Substitute BIN for your bin directory.
+          # Substitute VERSION for the current released version.
+          BIN="$HOME/.local/bin"
+          VERSION="1.55.1"
+          curl -sSL "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" -o "${BIN}/buf"
+          chmod +x "${BIN}/buf"
+          echo "PATH=$BIN:$PATH" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          # used to get last tag on branch
+          fetch-depth: 0
+      - name: lint protobufs
+        run: ${{ matrix.value.cmd }}
