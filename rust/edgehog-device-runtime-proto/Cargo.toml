@@ -1,0 +1,19 @@
+# Copyright 2025 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "edgehog-device-runtime-proto"
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+chrono.workspace = true
+prost.workspace = true
+prost-types = { workspace = true, features = ["chrono"] }
+tonic.workspace = true
+tonic-prost.workspace = true

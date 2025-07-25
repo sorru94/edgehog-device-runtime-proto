@@ -1,0 +1,29 @@
+# Copyright 2025 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+[workspace]
+members = ["codegen", "edgehog-device-runtime-proto"]
+resolver = "2"
+
+[workspace.package]
+version = "0.10.0-aplha.1"
+edition = "2021"
+homepage = "https://edgehog.io"
+license = "Apache-2.0"
+repository = "https://github.com/edgehog-device-manager/edgehog-device-runtime-proto"
+rust-version = "1.78"
+
+[workspace.dependencies]
+chrono = "0.4.41"
+clap = "4.5.41"
+color-eyre = "0.6.5"
+eyre = "0.6.12"
+prost = "0.14.1"
+prost-types = "0.14.1"
+tonic = "0.14.1"
+tonic-build = "0.14.1"
+tonic-prost = "0.14.1"
+tonic-prost-build = "0.14.1"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+walkdir = "2.5.0"
