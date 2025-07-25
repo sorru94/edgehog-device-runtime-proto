@@ -1,0 +1,73 @@
+# Copyright 2025 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: changelog
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+      - release-*
+  push:
+    branches:
+      - main
+      - release-*
+# Spend CI time only on latest ref
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
+jobs:
+  comment-changelog:
+    if: "${{ github.event_name == 'pull_request' }}"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: install git-cliff
+        uses: taiki-e/install-action@v2.57.1
+        with:
+          tool: git-cliff
+      - name: create changelog comment
+        run: |
+          ./scripts/changelog-comment.sh "$FROM" "$TO" "$PR"
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FROM: ${{ github.event.pull_request.base.sha }}
+          TO: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+  generate-changelog:
+    if: "${{ github.event_name == 'push' }}"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: install git-cliff
+        uses: taiki-e/install-action@v2.57.1
+        with:
+          tool: git-cliff
+      - name: generate changelog comment
+        run: |
+          ./scripts/changelog-update.sh
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v6.0.1
+        with:
+          commit_message: "chore(CHANGELOG): auto-generate changelog"
+          branch: ${{ github.ref_name }}
+          file_pattern: "CHANGELOG.md"

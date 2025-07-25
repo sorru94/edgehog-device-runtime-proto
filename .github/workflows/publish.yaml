@@ -5,13 +5,13 @@
 name: publish
 # When a release is published or called manually
 on:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
 # Only needs to clone the repository
 permissions:
-  contents: read
+  contents: write
 # Safer shell
 defaults:
   run:
@@ -23,17 +23,39 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
 jobs:
-  publish:
-    name: stable / publish
-    needs: [for-publish]
+  create-release:
     runs-on: ubuntu-24.04
     steps:
-      - uses: ./.github/actions/install-deps
+      - name: Extract tag name
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "The tag name is $TAG_NAME"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
-      - uses: actions-rust-lang/setup-rust-toolchain@v1.13.0
-      - name: publish creates
+        with:
+          fetch-depth: 0
+      - name: install git-cliff
+        uses: taiki-e/install-action@v2.57.1
+        with:
+          tool: git-cliff
+      - run: ./scripts/github-release.sh "$TAG_NAME"
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  publish-crates-io:
+    name: publish / crates.io
+    needs: [create-release]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install-deps
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.13.0
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - name: publish creates
+        working-directory: rust
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         # Publish the crates in order of dependency
         run: |
           cargo publish --locked -p edgehog-device-runtim-proto
