@@ -1,0 +1,235 @@
+// Copyright 2025 SECO Mind Srl
+//
+// SPDX-License-Identifier: Apache-2.0
+
+syntax = "proto3";
+
+package edgehog.deviceruntime.containers.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+// Service for managing containers on a device.
+service ContainersService {
+  // List all containers.
+  rpc List(ListRequest) returns (ListResponse) {}
+  // Get details of a specific container.
+  rpc Get(GetRequest) returns (GetResponse) {}
+  // Start a container.
+  rpc Start(StartRequest) returns (google.protobuf.Empty) {}
+  // Stop a container.
+  rpc Stop(StopRequest) returns (google.protobuf.Empty) {}
+  // Stream container statistics.
+  rpc Stats(StatsRequest) returns (stream StatsResponse) {}
+}
+
+// Request to list containers.
+message ListRequest {
+  // Optional: Filter containers by a specific status (e.g., "running",
+  // "stopped").
+  ListStatusFilter status_filter = 1;
+}
+
+// Filter containers by their status.
+enum ListStatusFilter {
+  LIST_STATUS_FILTER_UNSPECIFIED = 0;
+  LIST_STATUS_FILTER_RUNNING = 1;
+  LIST_STATUS_FILTER_STOPPED = 2;
+}
+
+// Response containing a list of containers.
+message ListResponse {
+  // A list of container objects.
+  repeated Container containers = 1;
+}
+
+// Request to get details of a single container.
+message GetRequest {
+  // The ID name of the container to retrieve.
+  string id = 1;
+}
+
+// Response containing details of a single container.
+message GetResponse {
+  // The requested container object.
+  Container container = 1;
+}
+
+// Request to start a container.
+message StartRequest {
+  // The ID of the container to start.
+  string id = 1;
+}
+
+// Request to stop a container.
+message StopRequest {
+  // The ID of the container to stop.
+  string id = 1;
+  // The timeout in seconds to wait for the container to stop.
+  optional int32 timeout_seconds = 2;
+}
+
+// Request to stream container statistics.
+message StatsRequest {
+  // The ID of the container to get statistics for.
+  repeated string id = 1;
+  // Interval in seconds between stats updates.
+  optional int32 interval_seconds = 2;
+}
+
+// A single stream of container statistics.
+message StatsResponse {
+  // ID of the container
+  string container_id = 1;
+  // Date and time at which this sample was collected
+  google.protobuf.Timestamp read = 2;
+  // Date and time at which this first sample was collected
+  google.protobuf.Timestamp prepared = 3;
+  // Stats of a container's process-IDs (PIDs).
+  optional PidsStats pids_stas = 4;
+  // BlkioStats stores all IO service stats for data read and write
+  optional BlkioStats blkio_stats = 5;
+  // CPU related info of the container
+  optional CpuStats cpu_stats = 6;
+  // CPU related info of the container
+  optional CpuStats precpu_stats = 7;
+  // Aggregates all memory stats since container inception.
+  MemoryStats memory_stats = 8;
+  // Network statistics for the container per interface.
+  map<string, NetworkStats> networks = 9;
+}
+
+// Stats of a container's process-IDs (PIDs).
+message PidsStats {
+  // Current is the number of PIDs in the cgroup.
+  optional uint64 current = 1;
+  // Limit is the hard limit on the number of pids in the cgroup. A "Limit" of 0 means that there is no limit.
+  optional uint64 limit = 2;
+}
+
+// BlkioStats stores all IO service stats for data read and write.
+message BlkioStats {
+  // Available on hosts with cgroups v2
+  repeated BlkioValue io_service_bytes_recursize = 1;
+  // Available on hosts with cgroups v1
+  repeated BlkioValue io_service_recursize = 2;
+  // Available on hosts with cgroups v1
+  repeated BlkioValue io_queue_recursize = 3;
+  // Available on hosts with cgroups v1
+  repeated BlkioValue io_service_time_recursize = 4;
+  // Available on hosts with cgroups v1
+  repeated BlkioValue io_wait_time_recursize = 5;
+  // Available on hosts with cgroups v1
+  repeated BlkioValue io_merged_recursize = 6;
+  // Available on hosts with cgroups v1
+  repeated BlkioValue io_time_recursize = 7;
+  // Available on hosts with cgroups v1
+  repeated BlkioValue sectors_recursize = 8;
+}
+
+message BlkioValue {
+  uint64 major = 1;
+  uint64 minor = 2;
+  string op = 3;
+  uint64 value = 4;
+}
+
+// CPU related info of the container
+message CpuStats {
+  // All CPU stats aggregated since container inception.
+  CpuUsage cpu_usage = 1;
+  // System Usage.
+  optional uint64 system_cpu_usage = 2;
+  // Number of online CPUs.
+  optional uint64 online_cpus = 3;
+  // CPU throttling stats of the container.
+  optional CpuThrottlingData throttling_data = 4;
+}
+
+// All CPU stats aggregated since container inception
+message CpuUsage {
+  // Total CPU time consumed in nanoseconds
+  uint64 total_usage = 1;
+  // Total CPU time (in nanoseconds) consumed per core.
+  //
+  // This field is Linux-specific when using cgroups v1. It is omitted when using cgroups v2.
+  repeated uint64 percpu_usage = 2;
+  // Time (in nanoseconds) spent by tasks of the cgroup in kernel mode
+  uint64 usage_in_kernelmode = 3;
+  // Time (in nanoseconds) spent by tasks of the cgroup in user mode
+  uint64 usage_in_usermode = 4;
+}
+
+// CPU throttling stats of the container.
+message CpuThrottlingData {
+  // Number of periods with throttling active.
+  uint64 periods = 1;
+  // Number of periods when the container hit its throttling limit.
+  uint64 throttled_periods = 2;
+  // Aggregated time (in nanoseconds) the container was throttled for.
+  uint64 throttled_time = 3;
+}
+
+// Aggregates all memory stats since container inception
+message MemoryStats {
+  // Current res_counter usage for memory.
+  optional uint64 usage = 1;
+  // Maximum usage ever recorded.
+  //
+  // This field is Linux-specific and only supported on cgroups v1.
+  optional uint64 max_usage = 2;
+  // All the stats exported via memory.stat. when using cgroups v2.
+  map<string, uint64> stats = 3;
+  // Number of times memory usage hits limits.
+  //
+  // This field is Linux-specific and only supported on cgroups v1.
+  optional uint64 failcnt = 4;
+  // Memory limit.
+  optional uint64 limit = 5;
+}
+
+// Aggregates the network stats of one container
+message NetworkStats {
+  // Bytes received.
+  uint64 rx_bytes = 1;
+  // Packets received.
+  uint64 rx_packets = 3;
+  // Received errors.
+  uint64 rx_errors = 5;
+  // Incoming packets dropped.
+  uint64 rx_dropped = 7;
+  // Bytes sent.
+  uint64 tx_bytes = 2;
+  // Packets sent.
+  uint64 tx_packets = 4;
+  // Sent errors.
+  uint64 tx_errors = 6;
+  // Outgoing packets dropped.
+  uint64 tx_dropped = 8;
+}
+
+// Container information
+message Container {
+  string id = 1;
+  // Date and time at which the container was created.
+  optional google.protobuf.Timestamp created = 2;
+  // The hostname to use for the container, as a valid RFC 1123 hostname.
+  string hostname = 3;
+  // The ID (digest) of the image that this container was created from.
+  string image = 4;
+  // Representation of the container state.
+  ContainerStatus status = 5;
+  // Number of times the container was restarted since it was created, or since daemon was started.
+  uint32 restart_count = 6;
+}
+
+enum ContainerStatus {
+  CONTAINER_STATUS_UNSPECIFIED = 0;
+  CONTAINER_STATUS_CREATED = 1;
+  CONTAINER_STATUS_RUNNING = 2;
+  CONTAINER_STATUS_PAUSED = 3;
+  CONTAINER_STATUS_RESTARTING = 4;
+  CONTAINER_STATUS_REMOVING = 5;
+  CONTAINER_STATUS_EXITED = 6;
+  CONTAINER_STATUS_DEAD = 7;
+}
