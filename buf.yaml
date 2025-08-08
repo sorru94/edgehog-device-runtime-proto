@@ -1,0 +1,15 @@
+# Copyright 2025 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+  rpc_allow_google_protobuf_empty_responses: true
+breaking:
+  use:
+    - FILE
