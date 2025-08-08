@@ -88,7 +88,7 @@ commit_parsers = [
   { message = "^chore\\(pr\\)", skip = true },
   { message = "^chore\\(pull\\)", skip = true },
   { message = "^chore|^ci", skip = true },
-  { pattern = '^Merge', skip = true },
+  { message = '^Merge', skip = true },
   { body = ".*security", group = "Security" },
   { message = "^revert", group = "Reverted" },
   { message = "^[a|A]dd", group = "Added" },
