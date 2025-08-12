@@ -16,9 +16,12 @@ env:
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
 jobs:
-  build:
+  rust-build:
     runs-on: ubuntu-24.04
     name: build
+    defaults:
+      run:
+        working-directory: ./rust/
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/install-deps

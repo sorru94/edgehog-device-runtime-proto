@@ -4,3 +4,5 @@
 
 .envrc
 .pre-commit-config.yaml
+target/
+output/
