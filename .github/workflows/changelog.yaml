@@ -6,7 +6,7 @@ name: changelog
 on:
   workflow_call:
   workflow_dispatch:
-  pull_request:
+  pull_request_target:
     branches:
       - main
       - release-*
@@ -23,7 +23,7 @@ defaults:
     shell: bash
 jobs:
   comment-changelog:
-    if: "${{ github.event_name == 'pull_request' }}"
+    if: "${{ github.event_name == 'pull_request_target' }}"
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -33,14 +33,23 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: origin
+          sparse-checkout: |
+            scripts
+      - uses: actions/checkout@v5
+        with:
+          path: pull-request
           fetch-depth: 0
       - name: install git-cliff
         uses: taiki-e/install-action@v2.57.1
         with:
           tool: git-cliff
       - name: create changelog comment
+        # Do not run the fork scripts
         run: |
-          ./scripts/changelog-comment.sh "$FROM" "$TO" "$PR"
+          cd pull-request
+          ../origin/scripts/changelog-comment.sh "$FROM" "$TO" "$PR"
         env:
           GITHUB_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
