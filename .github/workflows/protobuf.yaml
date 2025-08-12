@@ -37,7 +37,7 @@ jobs:
           curl -sSL "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" -o "${BIN}/buf"
           chmod +x "${BIN}/buf"
           echo "PATH=$BIN:$PATH" >> "$GITHUB_ENV"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # used to get last tag on branch
           fetch-depth: 0
