@@ -185,6 +185,8 @@ target_include_directories(edgehog_runtime_proto
     PUBLIC
         # For consumers building alongside this project (e.g., via FetchContent)
         "$<BUILD_INTERFACE:${_PROTO_GENERATED_OUTPUT_DIR}>"
+        # For consumers that find_package() this project after installation
+        "$<INSTALL_INTERFACE:include>"
 )
 
 set_target_properties(edgehog_runtime_proto
@@ -197,6 +199,12 @@ set_target_properties(edgehog_runtime_proto
 include(GNUInstallDirs)
 
 install(
+    DIRECTORY "${_PROTO_GENERATED_OUTPUT_DIR}/"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.pb.h"
+)
+
+install(
     TARGETS edgehog_runtime_proto
     EXPORT edgehog_runtime_proto
     LIBRARY
@@ -205,8 +213,6 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME
         DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PUBLIC_HEADER
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/edgehog_runtime_proto
 )
 
 # create pkg-conf .pc for importing projects
