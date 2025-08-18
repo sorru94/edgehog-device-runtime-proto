@@ -21,7 +21,7 @@ fi
 
 if [[ -n $changelog ]]; then
     body="
-Review the changelog that will be generated.
+Review the changelog changes that will be generated.
 
 # Changelog
 
