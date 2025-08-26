@@ -21,4 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Generate the proto files [(5170287)](https://github.com/edgehog-device-manager/edgehog-device-runtime-proto/commit/517028710a877fc7cee2b094697b81889355c113)
 
+- Add support for C++ [(3775870)](https://github.com/edgehog-device-manager/edgehog-device-runtime-proto/commit/37758700a54c97a25e49d26abdc8d8748d0ae81c)
+
 
