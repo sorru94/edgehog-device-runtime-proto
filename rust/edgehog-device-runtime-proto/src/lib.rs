@@ -6,4 +6,5 @@ pub mod containers;
 
 // Re-exported dependencies
 pub use prost;
+pub use prost_types;
 pub use tonic;
