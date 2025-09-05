@@ -23,4 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add support for C++ [(3775870)](https://github.com/edgehog-device-manager/edgehog-device-runtime-proto/commit/37758700a54c97a25e49d26abdc8d8748d0ae81c)
 
+- Re-export prost_types crate [(0359bc4)](https://github.com/edgehog-device-manager/edgehog-device-runtime-proto/commit/0359bc48158611ba8a2ae06cf213d552b575f74a)
+
 
