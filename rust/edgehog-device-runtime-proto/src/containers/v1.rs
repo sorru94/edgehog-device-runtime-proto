@@ -2,16 +2,71 @@
 /// Request to list containers.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListRequest {
+    /// Amount of information to send in the response
+    #[prost(enumeration = "ListInfo", optional, tag = "1")]
+    pub list_info: ::core::option::Option<i32>,
     /// Optional: Filter containers by a specific status
-    #[prost(enumeration = "ContainerState", repeated, tag = "1")]
+    #[prost(enumeration = "ContainerState", repeated, tag = "2")]
     pub container_state_filter: ::prost::alloc::vec::Vec<i32>,
 }
 /// Response containing a list of containers.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
-    /// A list of container objects.
+    /// Information required with the ListInfo enum in the request.
+    ///
+    /// If unspecified the summary is returned.
+    #[prost(oneof = "list_response::Info", tags = "1, 2, 3")]
+    pub info: ::core::option::Option<list_response::Info>,
+}
+/// Nested message and enum types in `ListResponse`.
+pub mod list_response {
+    /// Information required with the ListInfo enum in the request.
+    ///
+    /// If unspecified the summary is returned.
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Info {
+        /// Ids of the containers
+        #[prost(message, tag = "1")]
+        Ids(super::ListInfoIds),
+        /// Summary information for the containers.
+        #[prost(message, tag = "2")]
+        Summary(super::ListInfoSummary),
+        /// Full container information.
+        #[prost(message, tag = "3")]
+        Full(super::ListInfoFull),
+    }
+}
+/// / List of the container ids.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListInfoIds {
+    /// / List of the ids
     #[prost(message, repeated, tag = "1")]
-    pub containers: ::prost::alloc::vec::Vec<ContainerSummary>,
+    pub ids: ::prost::alloc::vec::Vec<ContainerId>,
+}
+/// / The id of a container.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ContainerId {
+    /// Edgehog ID of the container
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    /// Container ID from the container runtime.
+    #[prost(string, optional, tag = "2")]
+    pub container_id: ::core::option::Option<::prost::alloc::string::String>,
+}
+/// / Summary information of the containers.
+///
+/// This information is less expensive than the full information request.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListInfoSummary {
+    /// / Container information.
+    #[prost(message, repeated, tag = "1")]
+    pub container: ::prost::alloc::vec::Vec<ContainerSummary>,
+}
+/// / Full information of the containers.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListInfoFull {
+    #[prost(message, repeated, tag = "1")]
+    pub container: ::prost::alloc::vec::Vec<Container>,
 }
 /// Request to get details of a single container.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -60,37 +115,39 @@ pub struct StatsRequest {
     pub limit: ::core::option::Option<u64>,
 }
 /// A single stream of container statistics.
+///
+/// The 'pre' cpu fields is the previous read and are used to calculate the CPU usage in percentage.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StatsResponse {
-    /// Edgehog ID of the container
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
-    /// Container ID from the container runtime.
-    #[prost(string, optional, tag = "2")]
-    pub container_id: ::core::option::Option<::prost::alloc::string::String>,
+    /// ID of the container
+    #[prost(message, optional, tag = "1")]
+    pub id: ::core::option::Option<ContainerId>,
     /// Date and time at which this sample was collected
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "2")]
     pub read: ::core::option::Option<::prost_types::Timestamp>,
     /// Date and time at which the previous sample was collected
-    #[prost(message, optional, tag = "4")]
+    #[prost(message, optional, tag = "3")]
     pub preread: ::core::option::Option<::prost_types::Timestamp>,
     /// Stats of a container's process-IDs (PIDs).
-    #[prost(message, optional, tag = "5")]
+    #[prost(message, optional, tag = "4")]
     pub pids_stats: ::core::option::Option<PidsStats>,
     /// BlkioStats stores all IO service stats for data read and write
-    #[prost(message, optional, tag = "6")]
+    #[prost(message, optional, tag = "5")]
     pub blkio_stats: ::core::option::Option<BlkioStats>,
     /// CPU related info of the container
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "6")]
     pub cpu_stats: ::core::option::Option<CpuStats>,
     /// CPU related info of the container
-    #[prost(message, optional, tag = "8")]
+    ///
+    /// This is the previous read value. It's used to calculate the cpu usage in percentage since the
+    /// delta of the current and previous CPU usage is required.
+    #[prost(message, optional, tag = "7")]
     pub precpu_stats: ::core::option::Option<CpuStats>,
     /// Aggregates all memory stats since container inception.
-    #[prost(message, optional, tag = "9")]
+    #[prost(message, optional, tag = "8")]
     pub memory_stats: ::core::option::Option<MemoryStats>,
     /// Network statistics for the container per interface.
-    #[prost(map = "string, message", tag = "10")]
+    #[prost(map = "string, message", tag = "9")]
     pub networks: ::std::collections::HashMap<::prost::alloc::string::String, NetworkStats>,
 }
 /// Stats of a container's process-IDs (PIDs).
@@ -104,6 +161,8 @@ pub struct PidsStats {
     pub limit: ::core::option::Option<u64>,
 }
 /// BlkioStats stores all IO service stats for data read and write.
+///
+/// Those are passed from the linux kernel and are statistics of writes and reads on block devices.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BlkioStats {
     /// Available on hosts with cgroups v2
@@ -153,7 +212,9 @@ pub struct CpuStats {
     /// All CPU stats aggregated since container inception.
     #[prost(message, optional, tag = "1")]
     pub cpu_usage: ::core::option::Option<CpuUsage>,
-    /// System Usage.
+    /// Full system system cpu usage.
+    ///
+    /// It's used to calculate the CPU usage in percentage.
     #[prost(uint64, optional, tag = "2")]
     pub system_cpu_usage: ::core::option::Option<u64>,
     /// Number of online CPUs.
@@ -248,48 +309,42 @@ pub struct NetworkStats {
 /// Container summary information returned when listing
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ContainerSummary {
-    /// Edgehog ID of the container
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
-    /// Container ID from the container runtime.
-    #[prost(string, optional, tag = "2")]
-    pub container_id: ::core::option::Option<::prost::alloc::string::String>,
+    /// ID of the container
+    #[prost(message, optional, tag = "1")]
+    pub id: ::core::option::Option<ContainerId>,
     /// Date and time at which the container was created.
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "2")]
     pub created: ::core::option::Option<::prost_types::Timestamp>,
     /// The ID (digest) of the image that this container was created from.
-    #[prost(string, tag = "4")]
+    #[prost(string, tag = "3")]
     pub image: ::prost::alloc::string::String,
     /// Representation of the container state.
-    #[prost(enumeration = "ContainerState", tag = "5")]
+    #[prost(enumeration = "ContainerState", tag = "4")]
     pub state: i32,
     /// Port-mappings for the container.
-    #[prost(message, repeated, tag = "6")]
+    #[prost(message, repeated, tag = "5")]
     pub ports: ::prost::alloc::vec::Vec<PortMapping>,
 }
 /// Container information
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Container {
-    /// Edgehog ID of the container.
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
-    /// Container ID from the container runtime.
-    #[prost(string, optional, tag = "2")]
-    pub container_id: ::core::option::Option<::prost::alloc::string::String>,
+    /// ID of the container
+    #[prost(message, optional, tag = "1")]
+    pub id: ::core::option::Option<ContainerId>,
     /// Date and time at which the container was created.
-    #[prost(message, optional, tag = "3")]
+    #[prost(message, optional, tag = "2")]
     pub created: ::core::option::Option<::prost_types::Timestamp>,
     /// The ID (digest) of the image that this container was created from.
-    #[prost(string, tag = "4")]
+    #[prost(string, tag = "3")]
     pub image: ::prost::alloc::string::String,
     /// Representation of the container state.
-    #[prost(enumeration = "ContainerState", tag = "5")]
+    #[prost(enumeration = "ContainerState", tag = "4")]
     pub state: i32,
     /// Number of times the container was restarted since it was created, or since daemon was started.
-    #[prost(uint32, tag = "6")]
+    #[prost(uint32, tag = "5")]
     pub restart_count: u32,
     /// Port-mappings for the container.
-    #[prost(message, repeated, tag = "7")]
+    #[prost(message, repeated, tag = "6")]
     pub ports: ::prost::alloc::vec::Vec<PortMapping>,
 }
 /// Port-mapping for the container
@@ -307,6 +362,43 @@ pub struct PortMapping {
     /// Protocol of the port: "tcp", "udp", "sctp", ...
     #[prost(enumeration = "PortType", tag = "4")]
     pub protocol: i32,
+}
+/// The state of this container.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ListInfo {
+    /// Return the default
+    Unspecified = 0,
+    /// Return only the container ids
+    Ids = 1,
+    /// Return a summary of the information
+    Summary = 2,
+    /// Return the full information.
+    Full = 3,
+}
+impl ListInfo {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LIST_INFO_UNSPECIFIED",
+            Self::Ids => "LIST_INFO_IDS",
+            Self::Summary => "LIST_INFO_SUMMARY",
+            Self::Full => "LIST_INFO_FULL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LIST_INFO_UNSPECIFIED" => Some(Self::Unspecified),
+            "LIST_INFO_IDS" => Some(Self::Ids),
+            "LIST_INFO_SUMMARY" => Some(Self::Summary),
+            "LIST_INFO_FULL" => Some(Self::Full),
+            _ => None,
+        }
+    }
 }
 /// The state of this container.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]

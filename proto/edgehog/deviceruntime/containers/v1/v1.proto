@@ -25,14 +25,64 @@ service ContainersService {
 
 // Request to list containers.
 message ListRequest {
+  // Amount of information to send in the response
+  optional ListInfo list_info = 1;
   // Optional: Filter containers by a specific status
-  repeated ContainerState container_state_filter = 1;
+  repeated ContainerState container_state_filter = 2;
+}
+
+// The state of this container.
+enum ListInfo {
+  // Return the default
+  LIST_INFO_UNSPECIFIED = 0;
+  // Return only the container ids
+  LIST_INFO_IDS = 1;
+  // Return a summary of the information
+  LIST_INFO_SUMMARY = 2;
+  // Return the full information.
+  LIST_INFO_FULL = 3;
 }
 
 // Response containing a list of containers.
 message ListResponse {
-  // A list of container objects.
-  repeated ContainerSummary containers = 1;
+  // Information required with the ListInfo enum in the request.
+  //
+  // If unspecified the summary is returned.
+  oneof info {
+    // Ids of the containers
+    ListInfoIds ids = 1;
+    // Summary information for the containers.
+    ListInfoSummary summary = 2;
+    // Full container information.
+    ListInfoFull full = 3;
+  }
+}
+
+/// List of the container ids.
+message ListInfoIds {
+  /// List of the ids
+  repeated ContainerId ids = 1;
+}
+
+/// The id of a container.
+message ContainerId {
+  // Edgehog ID of the container
+  string id = 1;
+  // Container ID from the container runtime.
+  optional string container_id = 2;
+}
+
+/// Summary information of the containers.
+//
+// This information is less expensive than the full information request.
+message ListInfoSummary {
+  /// Container information.
+  repeated ContainerSummary container = 1;
+}
+
+/// Full information of the containers.
+message ListInfoFull {
+  repeated Container container = 1;
 }
 
 // Request to get details of a single container.
@@ -77,29 +127,27 @@ message StatsRequest {
 //
 // The 'pre' cpu fields is the previous read and are used to calculate the CPU usage in percentage.
 message StatsResponse {
-  // Edgehog ID of the container
-  string id = 1;
-  // Container ID from the container runtime.
-  optional string container_id = 2;
+  // ID of the container
+  ContainerId id = 1;
   // Date and time at which this sample was collected
-  google.protobuf.Timestamp read = 3;
+  google.protobuf.Timestamp read = 2;
   // Date and time at which the previous sample was collected
-  optional google.protobuf.Timestamp preread = 4;
+  optional google.protobuf.Timestamp preread = 3;
   // Stats of a container's process-IDs (PIDs).
-  optional PidsStats pids_stats = 5;
+  optional PidsStats pids_stats = 4;
   // BlkioStats stores all IO service stats for data read and write
-  optional BlkioStats blkio_stats = 6;
+  optional BlkioStats blkio_stats = 5;
   // CPU related info of the container
-  optional CpuStats cpu_stats = 7;
+  optional CpuStats cpu_stats = 6;
   // CPU related info of the container
   //
   // This is the previous read value. It's used to calculate the cpu usage in percentage since the
   // delta of the current and previous CPU usage is required.
-  optional CpuStats precpu_stats = 8;
+  optional CpuStats precpu_stats = 7;
   // Aggregates all memory stats since container inception.
-  optional MemoryStats memory_stats = 9;
+  optional MemoryStats memory_stats = 8;
   // Network statistics for the container per interface.
-  map<string, NetworkStats> networks = 10;
+  map<string, NetworkStats> networks = 9;
 }
 
 // Stats of a container's process-IDs (PIDs).
@@ -222,36 +270,32 @@ message NetworkStats {
 
 // Container summary information returned when listing
 message ContainerSummary {
-  // Edgehog ID of the container
-  string id = 1;
-  // Container ID from the container runtime.
-  optional string container_id = 2;
+  // ID of the container
+  ContainerId id = 1;
   // Date and time at which the container was created.
-  optional google.protobuf.Timestamp created = 3;
+  optional google.protobuf.Timestamp created = 2;
   // The ID (digest) of the image that this container was created from.
-  string image = 4;
+  string image = 3;
   // Representation of the container state.
-  ContainerState state = 5;
+  ContainerState state = 4;
   // Port-mappings for the container.
-  repeated PortMapping ports = 6;
+  repeated PortMapping ports = 5;
 }
 
 // Container information
 message Container {
-  // Edgehog ID of the container.
-  string id = 1;
-  // Container ID from the container runtime.
-  optional string container_id = 2;
+  // ID of the container
+  ContainerId id = 1;
   // Date and time at which the container was created.
-  optional google.protobuf.Timestamp created = 3;
+  optional google.protobuf.Timestamp created = 2;
   // The ID (digest) of the image that this container was created from.
-  string image = 4;
+  string image = 3;
   // Representation of the container state.
-  ContainerState state = 5;
+  ContainerState state = 4;
   // Number of times the container was restarted since it was created, or since daemon was started.
-  uint32 restart_count = 6;
+  uint32 restart_count = 5;
   // Port-mappings for the container.
-  repeated PortMapping ports = 7;
+  repeated PortMapping ports = 6;
 }
 
 // The state of this container.
