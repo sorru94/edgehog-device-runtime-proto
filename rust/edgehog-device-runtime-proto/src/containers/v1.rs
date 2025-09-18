@@ -60,13 +60,13 @@ pub struct ContainerId {
 pub struct ListInfoSummary {
     /// / Container information.
     #[prost(message, repeated, tag = "1")]
-    pub container: ::prost::alloc::vec::Vec<ContainerSummary>,
+    pub containers: ::prost::alloc::vec::Vec<ContainerSummary>,
 }
 /// / Full information of the containers.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListInfoFull {
     #[prost(message, repeated, tag = "1")]
-    pub container: ::prost::alloc::vec::Vec<Container>,
+    pub containers: ::prost::alloc::vec::Vec<Container>,
 }
 /// Request to get details of a single container.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
