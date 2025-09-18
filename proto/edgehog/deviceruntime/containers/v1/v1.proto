@@ -25,27 +25,69 @@ service ContainersService {
 
 // Request to list containers.
 message ListRequest {
-  // Optional: Filter containers by a specific status (e.g., "running",
-  // "stopped").
-  ListStatusFilter status_filter = 1;
+  // Amount of information to send in the response
+  optional ListInfo list_info = 1;
+  // Optional: Filter containers by a specific status
+  repeated ContainerState container_state_filter = 2;
 }
 
-// Filter containers by their status.
-enum ListStatusFilter {
-  LIST_STATUS_FILTER_UNSPECIFIED = 0;
-  LIST_STATUS_FILTER_RUNNING = 1;
-  LIST_STATUS_FILTER_STOPPED = 2;
+// The state of this container.
+enum ListInfo {
+  // Return the default
+  LIST_INFO_UNSPECIFIED = 0;
+  // Return only the container ids
+  LIST_INFO_IDS = 1;
+  // Return a summary of the information
+  LIST_INFO_SUMMARY = 2;
+  // Return the full information.
+  LIST_INFO_FULL = 3;
 }
 
 // Response containing a list of containers.
 message ListResponse {
-  // A list of container objects.
-  repeated Container containers = 1;
+  // Information required with the ListInfo enum in the request.
+  //
+  // If unspecified the summary is returned.
+  oneof info {
+    // Ids of the containers
+    ListInfoIds ids = 1;
+    // Summary information for the containers.
+    ListInfoSummary summary = 2;
+    // Full container information.
+    ListInfoFull full = 3;
+  }
+}
+
+/// List of the container ids.
+message ListInfoIds {
+  /// List of the ids
+  repeated ContainerId ids = 1;
+}
+
+/// The id of a container.
+message ContainerId {
+  // Edgehog ID of the container
+  string id = 1;
+  // Container ID from the container runtime.
+  optional string container_id = 2;
+}
+
+/// Summary information of the containers.
+//
+// This information is less expensive than the full information request.
+message ListInfoSummary {
+  /// Container information.
+  repeated ContainerSummary container = 1;
+}
+
+/// Full information of the containers.
+message ListInfoFull {
+  repeated Container container = 1;
 }
 
 // Request to get details of a single container.
 message GetRequest {
-  // The ID name of the container to retrieve.
+  // The Edgehog ID of the container to retrieve.
   string id = 1;
 }
 
@@ -57,13 +99,13 @@ message GetResponse {
 
 // Request to start a container.
 message StartRequest {
-  // The ID of the container to start.
+  // The Edgehog ID of the container to start.
   string id = 1;
 }
 
 // Request to stop a container.
 message StopRequest {
-  // The ID of the container to stop.
+  // The Edgehog ID of the container to stop.
   string id = 1;
   // The timeout in seconds to wait for the container to stop.
   optional int32 timeout_seconds = 2;
@@ -71,30 +113,39 @@ message StopRequest {
 
 // Request to stream container statistics.
 message StatsRequest {
-  // The ID of the container to get statistics for.
-  repeated string id = 1;
+  // The Edgehog ID of the containers to get statistics for.
+  //
+  // If no ID is passed, all container telemetry is sent.
+  repeated string ids = 1;
   // Interval in seconds between stats updates.
   optional int32 interval_seconds = 2;
+  // Limit the number of values to receive.
+  optional uint64 limit = 3;
 }
 
 // A single stream of container statistics.
+//
+// The 'pre' cpu fields is the previous read and are used to calculate the CPU usage in percentage.
 message StatsResponse {
   // ID of the container
-  string container_id = 1;
+  ContainerId id = 1;
   // Date and time at which this sample was collected
   google.protobuf.Timestamp read = 2;
-  // Date and time at which this first sample was collected
-  google.protobuf.Timestamp prepared = 3;
+  // Date and time at which the previous sample was collected
+  optional google.protobuf.Timestamp preread = 3;
   // Stats of a container's process-IDs (PIDs).
-  optional PidsStats pids_stas = 4;
+  optional PidsStats pids_stats = 4;
   // BlkioStats stores all IO service stats for data read and write
   optional BlkioStats blkio_stats = 5;
   // CPU related info of the container
   optional CpuStats cpu_stats = 6;
   // CPU related info of the container
+  //
+  // This is the previous read value. It's used to calculate the cpu usage in percentage since the
+  // delta of the current and previous CPU usage is required.
   optional CpuStats precpu_stats = 7;
   // Aggregates all memory stats since container inception.
-  MemoryStats memory_stats = 8;
+  optional MemoryStats memory_stats = 8;
   // Network statistics for the container per interface.
   map<string, NetworkStats> networks = 9;
 }
@@ -108,40 +159,49 @@ message PidsStats {
 }
 
 // BlkioStats stores all IO service stats for data read and write.
+//
+// Those are passed from the linux kernel and are statistics of writes and reads on block devices.
 message BlkioStats {
   // Available on hosts with cgroups v2
-  repeated BlkioValue io_service_bytes_recursize = 1;
+  repeated BlkioValue io_service_bytes_recursive = 1;
   // Available on hosts with cgroups v1
-  repeated BlkioValue io_service_recursize = 2;
+  repeated BlkioValue io_serviced_recursive = 2;
   // Available on hosts with cgroups v1
-  repeated BlkioValue io_queue_recursize = 3;
+  repeated BlkioValue io_queue_recursive = 3;
   // Available on hosts with cgroups v1
-  repeated BlkioValue io_service_time_recursize = 4;
+  repeated BlkioValue io_service_time_recursive = 4;
   // Available on hosts with cgroups v1
-  repeated BlkioValue io_wait_time_recursize = 5;
+  repeated BlkioValue io_wait_time_recursive = 5;
   // Available on hosts with cgroups v1
-  repeated BlkioValue io_merged_recursize = 6;
+  repeated BlkioValue io_merged_recursive = 6;
   // Available on hosts with cgroups v1
-  repeated BlkioValue io_time_recursize = 7;
+  repeated BlkioValue io_time_recursive = 7;
   // Available on hosts with cgroups v1
-  repeated BlkioValue sectors_recursize = 8;
+  repeated BlkioValue sectors_recursive = 8;
 }
 
+// Operation on a block device
 message BlkioValue {
-  uint64 major = 1;
-  uint64 minor = 2;
-  string op = 3;
-  uint64 value = 4;
+  // Device type major
+  optional uint64 major = 1;
+  // Device type minor
+  optional uint64 minor = 2;
+  // Operation on the device
+  optional string op = 3;
+  // Value of the operation
+  optional uint64 value = 4;
 }
 
 // CPU related info of the container
 message CpuStats {
   // All CPU stats aggregated since container inception.
-  CpuUsage cpu_usage = 1;
-  // System Usage.
+  optional CpuUsage cpu_usage = 1;
+  // Full system system cpu usage.
+  //
+  // It's used to calculate the CPU usage in percentage.
   optional uint64 system_cpu_usage = 2;
   // Number of online CPUs.
-  optional uint64 online_cpus = 3;
+  optional uint32 online_cpus = 3;
   // CPU throttling stats of the container.
   optional CpuThrottlingData throttling_data = 4;
 }
@@ -149,25 +209,25 @@ message CpuStats {
 // All CPU stats aggregated since container inception
 message CpuUsage {
   // Total CPU time consumed in nanoseconds
-  uint64 total_usage = 1;
+  optional uint64 total_usage = 1;
   // Total CPU time (in nanoseconds) consumed per core.
   //
   // This field is Linux-specific when using cgroups v1. It is omitted when using cgroups v2.
   repeated uint64 percpu_usage = 2;
   // Time (in nanoseconds) spent by tasks of the cgroup in kernel mode
-  uint64 usage_in_kernelmode = 3;
+  optional uint64 usage_in_kernelmode = 3;
   // Time (in nanoseconds) spent by tasks of the cgroup in user mode
-  uint64 usage_in_usermode = 4;
+  optional uint64 usage_in_usermode = 4;
 }
 
 // CPU throttling stats of the container.
 message CpuThrottlingData {
   // Number of periods with throttling active.
-  uint64 periods = 1;
+  optional uint64 periods = 1;
   // Number of periods when the container hit its throttling limit.
-  uint64 throttled_periods = 2;
+  optional uint64 throttled_periods = 2;
   // Aggregated time (in nanoseconds) the container was throttled for.
-  uint64 throttled_time = 3;
+  optional uint64 throttled_time = 3;
 }
 
 // Aggregates all memory stats since container inception
@@ -191,45 +251,81 @@ message MemoryStats {
 // Aggregates the network stats of one container
 message NetworkStats {
   // Bytes received.
-  uint64 rx_bytes = 1;
+  optional uint64 rx_bytes = 1;
   // Packets received.
-  uint64 rx_packets = 3;
+  optional uint64 rx_packets = 3;
   // Received errors.
-  uint64 rx_errors = 5;
+  optional uint64 rx_errors = 5;
   // Incoming packets dropped.
-  uint64 rx_dropped = 7;
+  optional uint64 rx_dropped = 7;
   // Bytes sent.
-  uint64 tx_bytes = 2;
+  optional uint64 tx_bytes = 2;
   // Packets sent.
-  uint64 tx_packets = 4;
+  optional uint64 tx_packets = 4;
   // Sent errors.
-  uint64 tx_errors = 6;
+  optional uint64 tx_errors = 6;
   // Outgoing packets dropped.
-  uint64 tx_dropped = 8;
+  optional uint64 tx_dropped = 8;
+}
+
+// Container summary information returned when listing
+message ContainerSummary {
+  // ID of the container
+  ContainerId id = 1;
+  // Date and time at which the container was created.
+  optional google.protobuf.Timestamp created = 2;
+  // The ID (digest) of the image that this container was created from.
+  string image = 3;
+  // Representation of the container state.
+  ContainerState state = 4;
+  // Port-mappings for the container.
+  repeated PortMapping ports = 5;
 }
 
 // Container information
 message Container {
-  string id = 1;
+  // ID of the container
+  ContainerId id = 1;
   // Date and time at which the container was created.
   optional google.protobuf.Timestamp created = 2;
-  // The hostname to use for the container, as a valid RFC 1123 hostname.
-  string hostname = 3;
   // The ID (digest) of the image that this container was created from.
-  string image = 4;
+  string image = 3;
   // Representation of the container state.
-  ContainerStatus status = 5;
+  ContainerState state = 4;
   // Number of times the container was restarted since it was created, or since daemon was started.
-  uint32 restart_count = 6;
+  uint32 restart_count = 5;
+  // Port-mappings for the container.
+  repeated PortMapping ports = 6;
 }
 
-enum ContainerStatus {
-  CONTAINER_STATUS_UNSPECIFIED = 0;
-  CONTAINER_STATUS_CREATED = 1;
-  CONTAINER_STATUS_RUNNING = 2;
-  CONTAINER_STATUS_PAUSED = 3;
-  CONTAINER_STATUS_RESTARTING = 4;
-  CONTAINER_STATUS_REMOVING = 5;
-  CONTAINER_STATUS_EXITED = 6;
-  CONTAINER_STATUS_DEAD = 7;
+// The state of this container.
+enum ContainerState {
+  CONTAINER_STATE_UNSPECIFIED = 0;
+  CONTAINER_STATE_CREATED = 1;
+  CONTAINER_STATE_RUNNING = 2;
+  CONTAINER_STATE_PAUSED = 3;
+  CONTAINER_STATE_RESTARTING = 4;
+  CONTAINER_STATE_REMOVING = 5;
+  CONTAINER_STATE_EXITED = 6;
+  CONTAINER_STATE_DEAD = 7;
+}
+
+// Port-mapping for the container
+message PortMapping {
+  // Host IP address that the container's port is mapped to.
+  optional string ip = 1;
+  // Port on the container
+  uint32 private_port = 2;
+  // Port exposed on the host
+  optional uint32 public_port = 3;
+  // Protocol of the port: "tcp", "udp", "sctp", ...
+  PortType protocol = 4;
+}
+
+// Protocol of a port
+enum PortType {
+  PORT_TYPE_UNSPECIFIED = 0;
+  PORT_TYPE_TCP = 1;
+  PORT_TYPE_UDP = 2;
+  PORT_TYPE_SCTP = 3;
 }
