@@ -77,12 +77,12 @@ message ContainerId {
 // This information is less expensive than the full information request.
 message ListInfoSummary {
   /// Container information.
-  repeated ContainerSummary container = 1;
+  repeated ContainerSummary containers = 1;
 }
 
 /// Full information of the containers.
 message ListInfoFull {
-  repeated Container container = 1;
+  repeated Container containers = 1;
 }
 
 // Request to get details of a single container.
