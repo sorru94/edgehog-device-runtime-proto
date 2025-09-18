@@ -25,4 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Re-export prost_types crate [(0359bc4)](https://github.com/edgehog-device-manager/edgehog-device-runtime-proto/commit/0359bc48158611ba8a2ae06cf213d552b575f74a)
 
+- Add multiple list responses [(16f4266)](https://github.com/edgehog-device-manager/edgehog-device-runtime-proto/commit/16f42664b07c90f6c7a63085735e099feedf0234)
+
+
+### Changed
+
+- Improve the container service [(53c5a99)](https://github.com/edgehog-device-manager/edgehog-device-runtime-proto/commit/53c5a99ebb5d76a7aa48c97a178b1c5044c822ef)
+
 
